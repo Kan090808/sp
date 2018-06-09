@@ -1,0 +1,36 @@
+import java.io.*;
+import java.util.*;
+
+public class opcode2	{
+	private ArrayList<String> mnemonic;
+	private ArrayList<String> opcode;
+	public opcode2(){
+		mnemonic = new ArrayList<String>();
+		opcode = new ArrayList<String>();
+		BufferedReader reader;
+		Scanner scanner = new Scanner(System.in);
+		
+		//get n
+		try {
+			reader = new BufferedReader(new FileReader("opCode.txt"));
+			while(exit == 0) {
+				String line = reader.readLine();
+				if(line == null)
+					break;
+				String[] splited = line.split(" ");
+				mnemonic.add(splited[0]);
+				opcode.add(splited[1]);
+			}
+			reader.close();
+		}catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public List<String> getMnemonic() {
+		return mnemonic;
+	}
+	public List<String> getOpcode() {
+		return opcode;
+	}
+}
