@@ -1,0 +1,55 @@
+while(prog has next line or read last line contain exit){
+	
+	//cut off notes
+	if(contain notes){
+		if(can be cut){
+			cut by "." and save the word before "."; 
+		}
+	}
+
+	
+	if(line not null){
+		cut to be token;
+		if(cut array size <= 3){
+			
+			if(prog havent start){
+				if(second token is START){
+					first token is progname;
+					record prog started;
+					third token is prog loc;
+				}
+			}else if(prog started){
+				if(cut array size== 1){
+					if(token is RSUB){
+
+					}else if(token is mnemonic){
+						error:no operand;
+					}else{
+						error;
+					}
+				}else if(cut array size == 2){
+					if(first token is mnemonic){
+
+					}else if(first token is END){
+
+					}else {
+						error;
+					}
+				}else{
+					if(first token is mnemonic){
+						if(contains ","){
+
+						}else {
+							error;
+						}
+					}else if(second token is mnemonic{
+
+					}
+				}
+			}
+		
+		}else{
+			error:cut array size > 3;
+		}
+	}
+}
