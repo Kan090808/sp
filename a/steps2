@@ -1,22 +1,29 @@
-while(prog has next line or read last line contain exit){
-	
-	//cut off notes
-	if(contain notes){
-		if(can be cut){
-			cut by "." and save the word before "."; 
+while(havent read "END"){
+	//cut off comments
+	if(readline contain comments){
+		if(readline have word before "."){
+			cut by "." ;
+			replace readline by the word before "."; 
+		}else{
+			readline = null;
 		}
 	}
 
 	
-	if(line not null){
+	if(readline not null){
 		cut to be token;
-		if(cut array size <= 3){
+		if(token more then 3){
+			let third token and fourth to be one token;
+		}
+		if(token not more than 3){
 			
 			if(prog havent start){
-				if(second token is START){
-					first token is progname;
-					record prog started;
-					third token is prog loc;
+				if(have three token){
+					if(second token is START){
+						first token is progname;
+						record prog started;
+						third token is start address;
+					}
 				}
 			}else if(prog started){
 				if(cut array size== 1){
