@@ -31,7 +31,6 @@ public class assembler2{
 		while(exit==0){
 			lineN++;
 			s = br.readLine();
-			s = s.toUpperCase();
 			if(s != null && s.contains(".")){//delete all note first
 				String cut[] = s.split("\\.");//split by fullstop
 				if(cut.length>=1)//if can be cut
@@ -43,8 +42,8 @@ public class assembler2{
 			if(s != null){
 				if(s.trim().length()>0){//if lines have word(not included 
 					// spaces before first character and last character)
+					s = s.toUpperCase();
 					String cut[] = s.trim().split("\\s+");//split by all space
-					//System.out.println("cut: "+cut.length);
 					if(cut.length>3){
 						cut[2] = cut[2]+cut[3];
 						cut = Arrays.copyOf(cut, cut.length-1);
@@ -53,19 +52,26 @@ public class assembler2{
 						if(start == 0){
 							if(cut.length==3){
 								if(cut[1].equals("START")){
-									progname = cut[0];
-									startLoc = cut[2];
-									outPut result = new outPut();
-									result.loc = startLoc;
-									result.label = progname;
-									result.mnemonic = cut[1];
-									result.operand = startLoc;
-									result.lineN = lineN;
-									result.obc.opc = "";
-									result.obc.sbc = "";
-									output.add(result);
-									currentLoc = startLoc;
-									start = 1;
+									if(cut[2].matches("[0-9A-F]+")){
+										progname = cut[0];
+										startLoc = cut[2];
+										outPut result = new outPut();
+										result.loc = startLoc;
+										result.label = progname;
+										result.mnemonic = cut[1];
+										result.operand = startLoc;
+										result.lineN = lineN;
+										result.obc.opc = "";
+										result.obc.sbc = "";
+										output.add(result);
+										currentLoc = startLoc;
+										start = 1;
+									}else{
+										error++;
+										System.out.println("error:only allow 16 digits behind START at line "+lineN);
+										exit = 1;
+										break;
+									}
 								}
 							}else if(cut.length==2){
 								if(cut[1].equals("START")){
@@ -176,17 +182,27 @@ public class assembler2{
 									error++;
 									System.out.println("error:cannot without label at line "+lineN);
 								}else if(cut[0].equals("END")){
-									result.mnemonic=cut[0];
-									result.operand=cut[1];
-									result.obc.opc="";
-									result.obc.sbc="";
-									output.add(result);
-									endLoc = currentLoc;
-									exit = 1;
-
+									if(checkSymbol(symTable, cut[1]).label == null ){
+										error++;
+										System.out.println("error:undefined symbol behind END at line"+lineN);
+										exit=1;
+									}else{
+										result.mnemonic=cut[0];
+										result.operand=cut[1];
+										result.obc.opc="";
+										result.obc.sbc="";
+										output.add(result);
+										endLoc = currentLoc;
+										exit = 1;
+									}
 								}else if(!getOpcode(mnemonic,opcode,cut[1]).equals("not found")){
 									error++;
 									System.out.println("error:no operand at line "+lineN);
+								}else if(getOpcode(mnemonic,opcode,cut[0]).equals("not found") && notMne(notmne, cut[0]).equals("not found")){
+									error++;
+									System.out.println("error:mnemonic wrong at line "+lineN);
+
+
 								}else {
 									error++;
 									System.out.println("error:format wrong at line "+lineN);
@@ -231,10 +247,10 @@ public class assembler2{
 								}else if(!getOpcode(mnemonic,opcode,cut[1]).equals("not found")){
 									if(!getOpcode(mnemonic,opcode,cut[0]).equals("not found") || !getOpcode(mnemonic,opcode,cut[2]).equals("not found")){
 										error++;
-										System.out.println("error:symbol same with mnemonic at line "+lineN);
+										System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
 									}else if(cut[0].equals(cut[2])){
 										error++;
-										System.out.println("error:symbol same with operand at line "+lineN);
+										System.out.println("error:operand cannot same with label at line "+lineN);
 									}else{
 										result.mnemonic = cut[1];
 										result.obc.opc = getOpcode(mnemonic,opcode,cut[1]);
@@ -271,10 +287,10 @@ public class assembler2{
 								}else if(!notMne(notmne, cut[1]).equals("not found")){
 									if(!getOpcode(mnemonic,opcode,cut[0]).equals("not found") || !getOpcode(mnemonic,opcode,cut[2]).equals("not found")){
 										error++;
-										System.out.println("error:symbol same with mnemonic at line "+lineN);
+										System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
 									}else if(cut[0].equals(cut[2])){
 										error++;
-										System.out.println("error:symbol same with operand at line "+lineN);
+										System.out.println("error:operand cannot same with label at line "+lineN);
 									}else{
 										result.label = cut[0];
 										result.mnemonic = cut[1];
@@ -315,10 +331,19 @@ public class assembler2{
 														error++;
 														System.out.println("error:byte X value length cannot be odd number at line "+lineN);
 													}else{
-														result.obc.opc = "";
-														result.obc.sbc = bs[1];
-														currentLoc = locAdd(currentLoc, 1);
+														if(bs[1].matches("[0-9A-F]+")){
+															result.obc.opc = "";
+															result.obc.sbc = bs[1];
+															currentLoc = locAdd(currentLoc, 1);		
+														}else{
+															error++;
+															System.out.println("error:BYTE X value allow 16 digits at line "+lineN);
+														}
+														
 													}
+												}else {
+													error++;
+													System.out.println("error:value type of BYTE only allow C and X at line "+lineN);
 												}
 											}
 
@@ -358,7 +383,11 @@ public class assembler2{
 
 										output.add(result);
 									}
-								}else{
+								}else if(getOpcode(mnemonic,opcode,cut[1]).equals("not found") && notMne(notmne, cut[1]).equals("not found")){
+									error++;
+									System.out.println("error:mnemonic wrong at line "+lineN);
+
+								}else {
 									error++;
 									System.out.println("error:format wrong at line "+lineN);
 								}
@@ -368,7 +397,7 @@ public class assembler2{
 							error++;
 							System.out.println("error:more than one START at line"+lineN);
 						}
-					}else {
+					}else {//more than 3
 						error++;
 						System.out.println("error:token more than 3 at line "+lineN);
 					}
@@ -391,7 +420,7 @@ public class assembler2{
 		}
 		if(error == 0){
 			
-
+			//print ouput
 			int end10 = Integer.valueOf(endLoc, 16);
 			int start10 = Integer.valueOf(startLoc, 16);
 			int length10 = end10 - start10;
@@ -421,10 +450,14 @@ public class assembler2{
 				
 				System.out.println(output.get(i).lineN+"	");
 			}
-			// for(int i = 0; i<symTable.size(); i++){
-			// 	System.out.print(symTable.get(i).label+"	");
-			// 	System.out.println(symTable.get(i).loc);
-			// }
+
+			//print symbol table
+			for(int i = 0; i<symTable.size(); i++){
+				System.out.print(symTable.get(i).label+"	");
+				System.out.println(symTable.get(i).loc);
+			}
+
+			//print object code
 			System.out.println("H^"+progname+"	^"+("000000"+startLoc).substring(startLoc.length())+"^"+("000000"+progLength).substring(progLength.length()));
 			int count=0, loccount=0;
 			for(int i=1;i<output.size()-1;i++){
@@ -469,7 +502,12 @@ public class assembler2{
 					}
 				}
 			}
-			System.out.println("E^00"+output.get(0).loc);
+			if(checkSymbol(symTable, output.get(output.size()-1).operand).label != null &&
+			 checkSymbol(symTable, output.get(output.size()-1).operand).loc != null){
+				System.out.println("E^00"+checkSymbol(symTable, output.get(output.size()-1).operand).loc);
+
+			}
+			//System.out.println("E^00"+output.get(0).loc);
 			
 		}
 		
