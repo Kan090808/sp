@@ -7,12 +7,13 @@ public class assembler2{
 		//read and create opcode table
 		BufferedReader br = new BufferedReader(new FileReader("opCode.txt"));//read file
 		String line;//for readline
-		ArrayList<String> mnemonic = new ArrayList<String>();
-		ArrayList<String> opcode = new ArrayList<String>();
+		ArrayList<Mne> opTable = new ArrayList<Mne>();
 		while((line = br.readLine()) != null) {//read until empty line
 			String[] splited = line.split(" ");
-			mnemonic.add(splited[0]);
-			opcode.add(splited[1]);
+			Mne mne = new Mne();
+			mne.name = splited[0];
+			mne.opcode = splited[1];
+			opTable.add(mne);
 		}
 		br.close();
 
@@ -101,7 +102,7 @@ public class assembler2{
 									result.obc.sbc = "0000";
 									output.add(result);
 									currentLoc = locAdd(currentLoc, 3);
-								}else if(!getOpcode(mnemonic,opcode,cut[0]).equals("not found") || !notMne(notmne, cut[0]).equals("not found")){
+								}else if(!getOpcode(opTable,cut[0]).equals("not found") || !notMne(notmne, cut[0]).equals("not found")){
 									error++;
 									System.out.println("error:no operand at line "+lineN);
 								}else if(cut[0].equals("END")){
@@ -122,9 +123,9 @@ public class assembler2{
 										break;
 									}
 								}
-								if(!getOpcode(mnemonic,opcode,cut[0]).equals("not found")){
+								if(!getOpcode(opTable,cut[0]).equals("not found")){
 									result.mnemonic = cut[0];
-									result.obc.opc = getOpcode(mnemonic,opcode,cut[0]);
+									result.obc.opc = getOpcode(opTable,cut[0]);
 									if(cut[1].contains(",")){
 										String[] cutIndex = cut[1].split("\\,");
 										cut[1] = cutIndex[0];
@@ -195,10 +196,10 @@ public class assembler2{
 										endLoc = currentLoc;
 										exit = 1;
 									}
-								}else if(!getOpcode(mnemonic,opcode,cut[1]).equals("not found")){
+								}else if(!getOpcode(opTable,cut[1]).equals("not found")){
 									error++;
 									System.out.println("error:no operand at line "+lineN);
-								}else if(getOpcode(mnemonic,opcode,cut[0]).equals("not found") && notMne(notmne, cut[0]).equals("not found")){
+								}else if(getOpcode(opTable,cut[0]).equals("not found") && notMne(notmne, cut[0]).equals("not found")){
 									error++;
 									System.out.println("error:mnemonic wrong at line "+lineN);
 
@@ -217,9 +218,9 @@ public class assembler2{
 										break;
 									}
 								}
-								if(!getOpcode(mnemonic,opcode,cut[0]).equals("not found")){
+								if(!getOpcode(opTable,cut[0]).equals("not found")){
 									result.mnemonic = cut[0];
-									result.obc.opc = getOpcode(mnemonic,opcode,cut[0]);
+									result.obc.opc = getOpcode(opTable,cut[0]);
 									if(cut[1].contains(",")){
 										String[] cutIndex = cut[1].split("\\,");
 										cut[1] = cutIndex[0];
@@ -244,8 +245,8 @@ public class assembler2{
 										error++;
 										System.out.println("error:format wrong at line "+lineN);
 									}
-								}else if(!getOpcode(mnemonic,opcode,cut[1]).equals("not found")){
-									if(!getOpcode(mnemonic,opcode,cut[0]).equals("not found") || !getOpcode(mnemonic,opcode,cut[2]).equals("not found")){
+								}else if(!getOpcode(opTable,cut[1]).equals("not found")){
+									if(!getOpcode(opTable,cut[0]).equals("not found") || !getOpcode(opTable,cut[2]).equals("not found")){
 										error++;
 										System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
 									}else if(cut[0].equals(cut[2])){
@@ -253,7 +254,7 @@ public class assembler2{
 										System.out.println("error:operand cannot same with label at line "+lineN);
 									}else{
 										result.mnemonic = cut[1];
-										result.obc.opc = getOpcode(mnemonic,opcode,cut[1]);
+										result.obc.opc = getOpcode(opTable,cut[1]);
 										result.label = cut[0];
 										if(checkSymbol(symTable, cut[0]).label == null && checkSymbol(symTable,cut[0]).loc==null){
 											symBol sb = new symBol();
@@ -285,7 +286,7 @@ public class assembler2{
 										currentLoc = locAdd(currentLoc, 3);
 									}
 								}else if(!notMne(notmne, cut[1]).equals("not found")){
-									if(!getOpcode(mnemonic,opcode,cut[0]).equals("not found") || !getOpcode(mnemonic,opcode,cut[2]).equals("not found")){
+									if(!getOpcode(opTable,cut[0]).equals("not found") || !getOpcode(opTable,cut[2]).equals("not found")){
 										error++;
 										System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
 									}else if(cut[0].equals(cut[2])){
@@ -383,7 +384,7 @@ public class assembler2{
 
 										output.add(result);
 									}
-								}else if(getOpcode(mnemonic,opcode,cut[1]).equals("not found") && notMne(notmne, cut[1]).equals("not found")){
+								}else if(getOpcode(opTable,cut[1]).equals("not found") && notMne(notmne, cut[1]).equals("not found")){
 									error++;
 									System.out.println("error:mnemonic wrong at line "+lineN);
 
@@ -546,7 +547,14 @@ public class assembler2{
 			loc=null;
 		}
 	}
-
+	public static class Mne{
+		String name;
+		String opcode;
+		public Mne(){
+			name = null;
+			opcode = null;
+		}
+	}
 	
 	public static String notMne(String[] notmne, String search){
 		String ans="not found";
@@ -557,11 +565,11 @@ public class assembler2{
 		}
 		return ans;
 	}
-	public static String getOpcode(ArrayList<String> mnemonic, ArrayList<String> opcode, String search) {
+	public static String getOpcode(ArrayList<Mne> opTable, String search) {
 		String ans = "not found";
-		for(int i=0;i<mnemonic.size();i++){
-			if(search.equals(mnemonic.get(i))){
-				ans = opcode.get(i);
+		for(int i=0;i<opTable.size();i++){
+			if(search.equals(opTable.get(i).name)){
+				ans = opTable.get(i).opcode;
 			}
 		}
 		return ans;

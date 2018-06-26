@@ -4,7 +4,7 @@
 . empty line detection
 . . comand line user filenames input
 
-COPY START 2000		. program start here
+COPY START 1000		. program start here
 FIRST STL RETADR
 CLOOP JSUB RDREC
 LDA LENGTH
@@ -55,6 +55,6 @@ TIX LENGTH
 JLT WLOOP
 TEST RSUB
 OUTPUT BYTE X'05'
-END OUTPUT
+END FIRST
 
 .. . end of this program
