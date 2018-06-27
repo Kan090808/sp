@@ -1,0 +1,295 @@
+//read optable
+read line from opcode file;
+while(line not null) {//read until empty line
+	add mnemonic and opcode to optable;
+}
+read end;
+
+//read prog
+read line from program file;
+while(prog not end){
+
+	//delete all comments
+	if(line not null && contains comments){
+		cut line by ".";
+		if(cut success)//array length > 0
+			replace line by string before ".";
+		else
+			line is only ".";
+	}
+	
+	//line without comments
+	if(line not null){
+		if(line has words){//do nothing when line only has space and tab
+			line to uppercase;
+			cut line by all space and tab;
+			if(has 4 token){
+				combine third and fourth token;
+			}
+			if(token not more than 3){
+				if(havent found "START"){
+					if(has 3 token){
+						if(second token is "START"){
+							if(third token is 16 digits)){
+								first token is program name;
+								third token is program starting address;
+								add output;
+								record current address by starting address;
+								record "START" found;
+							}else{
+								record error;
+								show error:only allow 16 digits behind START;
+								record program end;
+								break;
+							}
+						}
+					}else if(has 2 token){
+						if(second token is "START"){
+							record error;
+							show error:no starting address;
+							break;
+						}else if(first token is "START"){
+							record error;
+							show error:no progname;
+							break;
+						}
+					}else{//has 1 token
+						if(first token is "START")){
+							record error++;
+							show error:no progname and starting address;
+							break;
+						}
+					}
+				}else if(found "START"){
+					if(has 1 token){
+						if(first token is "RSUB"){
+							add ouput;
+							current address+3;
+						}else if(first token is mnemonic or notmne){//notmne = {"BYTE", "RESB", "WORD", "RESW"};
+							record error;
+							show error:no operand;
+						}else if(first token is "END"){
+							record program end;
+							record error;
+							show error:no prog first line address;
+						}else{
+							record error;
+							show error:format wrong;
+						}
+					}else if(has 2 token) {
+						if(first token is "RSUB"){
+							if(second token not space and tab){
+								record error;
+								show error:RSUB can not have operand;
+								break;
+							}
+						}
+						if(first token is mnemonic){
+							if(second token contains ","){//index addressing
+								second token cut by ",";
+								if(not "X" after ","){
+									record error;
+									show error:index wrong;
+								}
+								if(second token not found in symbol table){
+									add new symbol without address;
+								}else{
+									symbol code + 8000;
+								}
+								output add;
+								current address + 3;
+							}else{// not index addressing
+								if(second token not found in symbol table){
+									add new symbol without address;
+								}else{
+									get symbol code from symbol table;
+								}
+								add output;
+								current address + 3);
+							}
+						}else if(second token is "RSUB"){
+							if(first token not found in symbol table){
+								add new symbol and define address by current address;
+							}else if(first token found in symbol table without address){
+								define symbol address by current address;
+								//fill up
+							}else{
+								record error;
+								show error:cannot define symbol more than once;
+							}
+							add output;
+							current address + 3;
+
+						}else if(first token is notmne){
+							record error;
+							show error:notmne cannot without label;
+						}else if(first token is "END"){
+							if(second token not found in symbol table){
+								record error;
+								show error:undefined symbol behind END;
+								record program end;
+							}else{
+								add ouput;
+								record current address as ending address;
+								record program end;
+							}
+						}else if(first token is mnemonic and is notmne){
+							record error;
+							show error:mnemonic wrong;
+
+						}else {//prevent unknown error
+							record error;
+							show error:format wrong;
+						}
+					}else if(has 3 token){
+						if(second token is "RSUB"){
+							if(third token not space and tab){
+								record error;
+								show error:RSUB can not have operand);
+								break;//continue
+							}
+						}
+						if(first token is mnemonic){
+							if(second token contains ","){
+								second token cut by ",";
+								if(third token not "X"){
+									record error;
+									show error:index wrong;
+								}
+								if(second token not found in symbol table){
+									add new symbol without address;
+								}else{
+									symbol code + 8000;
+								}
+								add output;
+								current address + 3;
+							}else{//prevent unknown error;
+								record error;
+								show error:format wrong;
+							}
+						}else if(second token is mnemonic){
+							if(first token is mnemonic or notmne){
+								record error;
+								show error:symbol cannot same with mnemonic;
+							}else{
+								if(first token not found in symbol table){
+									add new symbol with address;
+								}else if(first token found in symbol table without address){
+									add current address as symbol address;
+									//fill up symbol code 
+									for(check output list){
+										if(output symbol code is null && output operand same with first token){
+											add symbol address as output symbol code; 
+										}
+									}
+								}else{
+									record error;
+									show error: cannot define symbol more than once;
+								}
+								if(third token not found in symbol table){
+									add new symbol without address;
+								}else{
+									get symbol code from symbol table;
+								}
+								add output;
+								current address + 3;
+							}
+						}else if(second token is notmne){
+							if(first token is mnemonic or notmne){
+								record error;
+								show error:symbol cannot same with mnemonic;
+							}else{
+								if(first token not found in symbol table){
+									add new symbol with address;
+								}else if(first token found in symbol table without address){
+									add current address as symbol address;
+									for(check output list){
+										if(output symbol code == null and output operand same with first token){
+											add symbol address as output symbol code; 
+										}
+									}
+								}else{
+									record error;
+									show error: cannot define symbol more than once;
+								
+								}
+								if(second token is "BYTE"){
+									third token cut by ("'");
+									if(no words behind "'"){
+										record error;
+										show error:byte value cannot be empty;
+									}else{
+										if("C" before "'"){
+											for(words in "'"){
+												translate to 16 digits and save as symbol code;
+											}
+											current address + length of 16 digits;
+											
+										}else if("X" before "'"){
+											if(length of word in "'" cannot be mod 2){
+												record error;
+												show error:byte X value length cannot be odd number;
+											}else{
+												if(word in "'" is 16 digits){
+													add 16 digits as symbol code;
+													current address + 1;		
+												}else{
+													record error;
+													show error:BYTE X value allow 16 digits;
+												}
+												
+											}
+										}else {
+											record error;
+											show error:value type of BYTE only allow C and X;
+										}
+									}
+
+								}else if(second token is "RESB"){
+									if(third token not number){
+										record error;
+										show error:RESB value only allow decimal;
+									}else{
+										current address + RESB value;
+									}
+								}else if(second token is "WORD"){
+									if(third token not number){
+										record error;
+										show error:only allow decimal;
+									}else{
+										translate value of WORD to 16 digits;
+										add 16 digits as symbol code;
+										current address + 3;
+									}
+
+								}else if(second token is "RESW"){
+									if(third token not number){
+										record error;
+										show error:only allow decimal;
+									}else{
+										current address + value of RESW * 3;
+									}
+								}
+								
+								add output;
+							}
+						}else if(second token not mnemonic and notmne){
+							record error;
+							show error:mnemonic wrong;
+
+						}else {
+							record error;
+							show error:format wrong;
+						}
+					}
+					
+				}
+			}else {//token more than 3
+				record error;
+				show error:token more than 3;
+			}
+		}
+		
+	}
+	//output
+}

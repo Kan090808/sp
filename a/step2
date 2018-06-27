@@ -1,0 +1,464 @@
+//read optable
+read line from opcode file;
+while(line not null) {//read until empty line
+	add mnemonic and opcode to optable;
+}
+read end;
+
+//read prog
+read line from prog file;
+while(prog not end){
+
+	//delete all comments
+	if(line not null && contains comments){
+		cut line by ".";
+		if(cut success)//array length > 0
+			replace line by string before ".";
+		else
+			line is only ".";
+	}
+	
+	//line without comments
+	if(line not null){
+		if(line has words){//do nothing when line only has space and tab
+			line to uppercase;
+			cut line by all space and tab;
+			if(has 4 token){
+				combine third and fourth token;
+			}
+			if(token not more than 3){
+				if(havent found "START"){
+					if(has 3 token){
+						if(second token is "START"){
+							if(third token is 16 digits)){
+								first token is program name;
+								third token is program starting address;
+								add output;
+								record current address by starting address;
+								record "START" found;
+							}else{
+								record error;
+								show error:only allow 16 digits behind START;
+								record program end;
+								break;
+							}
+						}
+					}else if(has 2 token){
+						if(second token is "START"){
+							record error;
+							show error:no starting address;
+							break;
+						}else if(first token is "START"){
+							record error;
+							show error:no progname;
+							break;
+						}
+					}else{//has 1 token
+						if(first token is "START")){
+							record error++;
+							show error:no progname and starting address;
+							break;
+						}
+					}
+				}else if(found "START"){
+					if(has 1 token){
+						if(first token is "RSUB"){
+							add ouput;
+							current address+3;
+						}else if(first token is mnemonic or notmne){//notmne = {"BYTE", "RESB", "WORD", "RESW"};
+							record error;
+							show error:no operand;
+						}else if(first token is "END"){
+							record program end;
+							record error;
+							show error:no prog first line address;
+						}else{
+							record error;
+							show error:format wrong;
+						}
+					}else if(has 2 token) {
+						if(first token is "RSUB"){
+							if(second token not space and tab){
+								record error;
+								show error:RSUB can not have operand;
+								break;
+							}
+						}
+						if(first token is mnemonic){
+							if(second token contains ","){//index addressing
+								second token remove ",";
+								if("X"after","){
+									record error;
+									show error:index wrong;
+								}
+								if(second token not found in symbol table){
+									add new symbol without address;
+								}else{
+									object code + 8000;
+								}
+								output add;
+								current address + 3;
+							}else{// not index addressing
+								if(second token not found in symbol table){
+									add new symbol without address;
+								}else{
+									get object code from symbol table;
+								}
+								add output;
+								current address + 3);
+							}
+						}else if(cut[1].equals("RSUB")){
+							result.mnemonic=cut[1];
+							result.obc.opc = "4C";
+							result.obc.sbc = "0000";
+							result.label = cut[0];
+							if(checkSymbol(symTable, cut[0]).label == null && checkSymbol(symTable,cut[0]).loc==null){
+								symBol sb = new symBol();
+								sb.label = cut[0];
+								sb.loc = currentLoc;
+								symTable.add(sb);
+							}else if(checkSymbol(symTable, cut[0]).label != null && checkSymbol(symTable,cut[0]).loc==null){
+								checkSymbol(symTable, cut[0]).loc = currentLoc;
+							}else{
+								error++;
+								System.out.println("error:cannot define symbol more than once at line "+lineN);
+							}
+							output.add(result);
+							currentLoc = locAdd(currentLoc, 3);
+
+						}else if(!notMne(notmne, cut[0]).equals("not found")){
+							error++;
+							System.out.println("error:cannot without label at line "+lineN);
+						}else if(cut[0].equals("END")){
+							if(checkSymbol(symTable, cut[1]).label == null ){
+								error++;
+								System.out.println("error:undefined symbol behind END at line"+lineN);
+								exit=1;
+							}else{
+								result.mnemonic=cut[0];
+								result.operand=cut[1];
+								result.obc.opc="";
+								result.obc.sbc="";
+								output.add(result);
+								endLoc = currentLoc;
+								exit = 1;
+							}
+						}else if(!getOpcode(opTable,cut[1]).equals("not found")){
+							error++;
+							System.out.println("error:no operand at line "+lineN);
+						}else if(getOpcode(opTable,cut[0]).equals("not found") && notMne(notmne, cut[0]).equals("not found")){
+							error++;
+							System.out.println("error:mnemonic wrong at line "+lineN);
+
+
+						}else {
+							error++;
+							System.out.println("error:format wrong at line "+lineN);
+						}
+					}else if(cut.length == 3){
+						if(cut[1].equals("RSUB")){
+							result.obc.opc = "4C";
+							result.obc.sbc = "0000";
+							if(cut[1].trim().length()>0){
+								error++;
+								System.out.println("error:RSUB can not have operand at line "+lineN);
+								break;
+							}
+						}
+						if(!getOpcode(opTable,cut[0]).equals("not found")){
+							result.mnemonic = cut[0];
+							result.obc.opc = getOpcode(opTable,cut[0]);
+							if(cut[1].contains(",")){
+								String[] cutIndex = cut[1].split("\\,");
+								cut[1] = cutIndex[0];
+								if(!cut[2].equals("X")){
+									error++;
+									System.out.println("error:index wrong at line "+lineN);
+								}
+								result.operand = cut[1];
+								if(checkSymbol(symTable, cut[1]).label == null && checkSymbol(symTable,cut[1]).loc==null){
+									symBol sb = new symBol();
+									sb.label = cut[1];
+									symTable.add(sb);
+								}else if(checkSymbol(symTable, cut[0]).label != null && checkSymbol(symTable,cut[0]).loc==null){
+									
+								}else{
+									result.obc.sbc = locAdd(checkSymbol(symTable, cut[1]).loc,32768);
+								}
+								output.add(result);
+								currentLoc = locAdd(currentLoc, 3);
+
+							}else{
+								error++;
+								System.out.println("error:format wrong at line "+lineN);
+							}
+						}else if(!getOpcode(opTable,cut[1]).equals("not found")){
+							if(!getOpcode(opTable,cut[0]).equals("not found") || !getOpcode(opTable,cut[2]).equals("not found")){
+								error++;
+								System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
+							}else if(cut[0].equals(cut[2])){
+								error++;
+								System.out.println("error:operand cannot same with label at line "+lineN);
+							}else{
+								result.mnemonic = cut[1];
+								result.obc.opc = getOpcode(opTable,cut[1]);
+								result.label = cut[0];
+								if(checkSymbol(symTable, cut[0]).label == null && checkSymbol(symTable,cut[0]).loc==null){
+									symBol sb = new symBol();
+									sb.label = cut[0];
+									sb.loc = currentLoc;
+									symTable.add(sb);
+								}else if(checkSymbol(symTable, cut[0]).label != null && checkSymbol(symTable,cut[0]).loc==null){
+									checkSymbol(symTable,cut[0]).loc = currentLoc;
+									for(int i=0;i<output.size();i++){
+										if(output.get(i).obc.sbc == null && output.get(i).operand.equals(cut[0])){
+											output.get(i).obc.sbc = currentLoc;
+										}
+									}
+								}else{
+									error++;
+									System.out.println("error: cannot define symbol more than once at line "+lineN);
+								}
+								if(checkSymbol(symTable, cut[2]).label == null && checkSymbol(symTable,cut[2]).loc==null){
+									symBol sb = new symBol();
+									sb.label = cut[2];
+									symTable.add(sb);
+								}else if(checkSymbol(symTable, cut[2]).label != null && checkSymbol(symTable,cut[2]).loc==null){
+									
+								}else{
+									result.obc.sbc = checkSymbol(symTable, cut[2]).loc;
+								}
+								result.operand = cut[2];
+								output.add(result);
+								currentLoc = locAdd(currentLoc, 3);
+							}
+						}else if(!notMne(notmne, cut[1]).equals("not found")){
+							if(!getOpcode(opTable,cut[0]).equals("not found") || !getOpcode(opTable,cut[2]).equals("not found")){
+								error++;
+								System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
+							}else if(cut[0].equals(cut[2])){
+								error++;
+								System.out.println("error:operand cannot same with label at line "+lineN);
+							}else{
+								result.label = cut[0];
+								result.mnemonic = cut[1];
+								result.operand = cut[2];
+								if(checkSymbol(symTable, cut[0]).label == null && checkSymbol(symTable,cut[0]).loc==null){
+									symBol sb = new symBol();
+									sb.label = cut[0];
+									sb.loc = currentLoc;
+									symTable.add(sb);
+								}else if(checkSymbol(symTable, cut[0]).label != null && checkSymbol(symTable,cut[0]).loc==null){
+									checkSymbol(symTable,cut[0]).loc = currentLoc;
+									for(int i=0;i<output.size();i++){
+										if(output.get(i).obc.sbc == null && output.get(i).operand.equals(cut[0])){
+											output.get(i).obc.sbc = currentLoc;
+										}
+									}
+								}else{
+									error++;
+									System.out.println("error: cannot define symbol more than once at line "+lineN);
+								
+								}
+								if(notMne(notmne,cut[1]).equals("BYTE")){
+									String[] bs = cut[2].split("\\'");
+									if(bs.length<2){
+										error++;
+										System.out.println("error:byte value cannot be empty at line "+lineN);
+									}else{
+										if(bs[0].equals("C")){
+											result.obc.opc = "";
+											result.obc.sbc = "";
+											for(int i=0;i<bs[1].length();i++){
+												result.obc.sbc = result.obc.sbc+Integer.toHexString((int) bs[1].charAt(i));
+											}
+											currentLoc = locAdd(currentLoc, bs[1].length());
+											
+										}else if(bs[0].equals("X")){
+											if((bs[1].trim().length())%2 != 0){
+												error++;
+												System.out.println("error:byte X value length cannot be odd number at line "+lineN);
+											}else{
+												if(bs[1].matches("[0-9A-F]+")){
+													result.obc.opc = "";
+													result.obc.sbc = bs[1];
+													currentLoc = locAdd(currentLoc, 1);		
+												}else{
+													error++;
+													System.out.println("error:BYTE X value allow 16 digits at line "+lineN);
+												}
+												
+											}
+										}else {
+											error++;
+											System.out.println("error:value type of BYTE only allow C and X at line "+lineN);
+										}
+									}
+
+								}else if(notMne(notmne,cut[1]).equals("RESB")){
+									result.obc.opc = "";
+									result.obc.sbc = "";
+									if(!cut[2].matches("[0-9]+")){
+										error++;
+										System.out.println("error:only allow decimal at line "+lineN);
+									}else{
+										int loc10 = Integer.parseInt(cut[2]);
+										currentLoc = locAdd(currentLoc, loc10);
+									}
+								}else if(notMne(notmne,cut[1]).equals("WORD")){
+									if(!cut[2].matches("[0-9]+")){
+										error++;
+										System.out.println("error:only allow decimal at line "+lineN);
+									}else{
+										result.obc.opc = "00";
+										int loc10 = Integer.valueOf(cut[2],10);
+										String loc16 = Integer.toHexString(loc10);
+										result.obc.sbc = (("0000"+loc16).substring(loc16.length())).toUpperCase();
+										currentLoc = locAdd(currentLoc, 3);
+									}
+
+								}else if(notMne(notmne,cut[1]).equals("RESW")){
+									if(!cut[2].matches("[0-9]+")){
+										error++;
+										System.out.println("error:only allow decimal at line "+lineN);
+									}else{
+										result.obc.opc = "";
+										result.obc.sbc = "";
+										int loc10 = Integer.parseInt(cut[2]);
+										currentLoc = locAdd(currentLoc, loc10*3);
+									}
+								}
+
+								output.add(result);
+							}
+						}else if(getOpcode(opTable,cut[1]).equals("not found") && notMne(notmne, cut[1]).equals("not found")){
+							error++;
+							System.out.println("error:mnemonic wrong at line "+lineN);
+
+						}else {
+							error++;
+							System.out.println("error:format wrong at line "+lineN);
+						}
+					}
+					
+				}else{
+					error++;
+					System.out.println("error:more than one START at line"+lineN);
+				}
+			}else {//token more than 3
+				error++;
+				System.out.println("error:token more than 3 at line "+lineN);
+			}
+		}
+		
+	}
+
+}
+if(error==0){
+	for(int i=0;i<symTable.size();i++){
+		if(symTable.get(i).loc == null){
+			for(int j=0;j<output.size();j++){
+				if(symTable.get(i).label.equals(output.get(j).operand)){
+					error++;
+					System.out.println("error:undefined symbol '"+output.get(j).operand+"' at line"+output.get(j).lineN);
+				}
+			}
+		}
+	}
+}
+if(error == 0){
+	
+	//print ouput
+	int end10 = Integer.valueOf(endLoc, 16);
+	int start10 = Integer.valueOf(startLoc, 16);
+	int length10 = end10 - start10;
+	String progLength = (Integer.toHexString(length10)).toUpperCase();
+	
+	for(int i = 0; i<output.size(); i++){
+		System.out.print(output.get(i).loc+"	");
+		if(output.get(i).label == null)
+			System.out.print("	");
+		else
+			System.out.print(output.get(i).label+"	");
+		
+		System.out.print(output.get(i).mnemonic+"	");
+		if(output.get(i).operand == null)
+			System.out.print("	");
+		else
+			System.out.print(output.get(i).operand+"	");
+		if(output.get(i).obc.opc.trim().length()>0 && output.get(i).obc.sbc.trim().length()>0){
+			System.out.print(output.get(i).obc.opc);
+			System.out.print(output.get(i).obc.sbc+"		");
+		}else if(output.get(i).obc.sbc.trim().length()>0){
+			System.out.print(output.get(i).obc.sbc+"		");
+		}else{
+			System.out.print("		");
+
+		}
+		
+		System.out.println(output.get(i).lineN+"	");
+	}
+
+	//print symbol table
+	for(int i = 0; i<symTable.size(); i++){
+		System.out.print(symTable.get(i).label+"	");
+		System.out.println(symTable.get(i).loc);
+	}
+
+	//print object code
+	System.out.println("H^"+progname+"	^"+("000000"+startLoc).substring(startLoc.length())+"^"+("000000"+progLength).substring(progLength.length()));
+	int count=0, loccount=0;
+	for(int i=1;i<output.size()-1;i++){
+		if(i ==output.size()-2){
+			int currentlength = Integer.valueOf(output.get(i+1).loc, 16) - Integer.valueOf(output.get(i).loc, 16);
+			if(output.get(i).obc.sbc.trim().length()!=0){
+				loccount = loccount + currentlength;
+				count++;
+			
+				if(output.get(i+1).obc.sbc.trim().length()==0){
+					
+					System.out.print("T^00"+output.get(i-count+1).loc);
+					String loccount16 = Integer.toHexString(loccount).toUpperCase();
+					System.out.print("^"+(("00"+loccount16).substring(loccount16.length())));
+					for(int j=i-count+1;j<i+1;j++){
+						System.out.print("^"+output.get(j).obc.opc+output.get(j).obc.sbc);
+					}
+					System.out.println();
+					loccount = 0;
+					count = 0;
+				}
+			}
+		}else{
+			int currentlength = Integer.valueOf(output.get(i+1).loc, 16) - Integer.valueOf(output.get(i).loc, 16);
+			int nextlength = Integer.valueOf(output.get(i+2).loc, 16) - Integer.valueOf(output.get(i+1).loc, 16);
+			if(output.get(i).obc.sbc.trim().length()!=0){
+				loccount = loccount + currentlength;
+				count++;
+			
+				if(loccount+nextlength>30 || (output.get(i+1).obc.sbc.trim().length()==0)){
+					
+					System.out.print("T^00"+output.get(i-count+1).loc);
+					String loccount16 = Integer.toHexString(loccount).toUpperCase();
+					System.out.print("^"+(("00"+loccount16).substring(loccount16.length())));
+					for(int j=i-count+1;j<i+1;j++){
+						System.out.print("^"+output.get(j).obc.opc+output.get(j).obc.sbc);
+					}
+					System.out.println();
+					loccount = 0;
+					count = 0;
+				}
+			}
+		}
+	}
+	if(checkSymbol(symTable, output.get(output.size()-1).operand).label != null &&
+	 checkSymbol(symTable, output.get(output.size()-1).operand).loc != null){
+		System.out.println("E^00"+checkSymbol(symTable, output.get(output.size()-1).operand).loc);
+
+	}
+	//System.out.println("E^00"+output.get(0).loc);
+	
+}
+
+//System.out.println("size: -------"+token.size());
+
+}

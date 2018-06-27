@@ -16,28 +16,25 @@ public class assembler2{
 			opTable.add(mne);
 		}
 		br.close();
-
+		PrintWriter writer = new PrintWriter("object.txt", "UTF-8");
 		//read prog
 		br = new BufferedReader(new FileReader("testprog1.S"));
 		//0 loc, 1 label, 2 direct addressing, 3 index addressing, 
 		//4 other, 5 operand, 6 index
-		ArrayList<String> mneList = new ArrayList<String>();
 		String[] notmne = {"BYTE", "RESB", "WORD", "RESW"};
 		ArrayList<outPut> output = new ArrayList<outPut>();
 		ArrayList<symBol> symTable = new ArrayList<symBol>();
-		ArrayList<symBol> obcode = new ArrayList<symBol>();
 		int start=0,lineN=0,exit=0, error=0;
 		String s, progname="", startLoc="", endLoc="", currentLoc="";
 
-		while(exit==0){
+		while((s = br.readLine())!= null){
 			lineN++;
-			s = br.readLine();
-			if(s != null && s.contains(".")){//delete all note first
+			if(s != null && s.contains(".")){//delete all comments first
 				String cut[] = s.split("\\.");//split by fullstop
 				if(cut.length>=1)//if can be cut
 					s = cut[0];
 				else
-					s = null;
+					s = null;//line is only "."
 			}
 			
 			if(s != null){
@@ -45,7 +42,7 @@ public class assembler2{
 					// spaces before first character and last character)
 					s = s.toUpperCase();
 					String cut[] = s.trim().split("\\s+");//split by all space
-					if(cut.length>3){
+					if(cut.length == 4){
 						cut[2] = cut[2]+cut[3];
 						cut = Arrays.copyOf(cut, cut.length-1);
 					}
@@ -120,13 +117,14 @@ public class assembler2{
 									if(cut[1].trim().length()>0){
 										error++;
 										System.out.println("error:RSUB can not have operand at line "+lineN);
-										break;
+										continue;
 									}
 								}
 								if(!getOpcode(opTable,cut[0]).equals("not found")){
 									result.mnemonic = cut[0];
 									result.obc.opc = getOpcode(opTable,cut[0]);
 									if(cut[1].contains(",")){
+										result.addressing = -1;
 										String[] cutIndex = cut[1].split("\\,");
 										cut[1] = cutIndex[0];
 										if(!cutIndex[1].equals("X")){
@@ -138,9 +136,8 @@ public class assembler2{
 											symBol sb = new symBol();
 											sb.label = cut[1];
 											symTable.add(sb);
-										}else if(checkSymbol(symTable, cut[1]).label != null && checkSymbol(symTable,cut[1]).loc==null){
-
-										}else{
+											
+										}else {
 											result.obc.sbc = locAdd(checkSymbol(symTable, cut[1]).loc,32768);
 											 
 										}
@@ -152,8 +149,6 @@ public class assembler2{
 											symBol sb = new symBol();
 											sb.label = cut[1];
 											symTable.add(sb);
-										}else if(checkSymbol(symTable, cut[1]).label != null && checkSymbol(symTable,cut[1]).loc==null){
-
 										}else{
 											result.obc.sbc = checkSymbol(symTable, cut[1]).loc;
 										}
@@ -165,6 +160,11 @@ public class assembler2{
 									result.obc.opc = "4C";
 									result.obc.sbc = "0000";
 									result.label = cut[0];
+									if(!getOpcode(opTable,cut[0]).equals("not found") || !notMne(notmne, cut[0]).equals("not found")){
+										error++;
+										System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
+										continue;
+									}
 									if(checkSymbol(symTable, cut[0]).label == null && checkSymbol(symTable,cut[0]).loc==null){
 										symBol sb = new symBol();
 										sb.label = cut[0];
@@ -172,6 +172,15 @@ public class assembler2{
 										symTable.add(sb);
 									}else if(checkSymbol(symTable, cut[0]).label != null && checkSymbol(symTable,cut[0]).loc==null){
 										checkSymbol(symTable, cut[0]).loc = currentLoc;
+										for(int i=0;i<output.size();i++){
+												if(output.get(i).obc.sbc == null && output.get(i).operand.equals(cut[0])){
+													if(output.get(i).addressing == -1){
+														output.get(i).obc.sbc = locAdd(currentLoc, 32768);
+													}else{
+														output.get(i).obc.sbc = currentLoc;
+													}
+												}
+											}
 									}else{
 										error++;
 										System.out.println("error:cannot define symbol more than once at line "+lineN);
@@ -185,7 +194,7 @@ public class assembler2{
 								}else if(cut[0].equals("END")){
 									if(checkSymbol(symTable, cut[1]).label == null ){
 										error++;
-										System.out.println("error:undefined symbol behind END at line"+lineN);
+										System.out.println("error:undefined symbol behind END at line "+lineN);
 										exit=1;
 									}else{
 										result.mnemonic=cut[0];
@@ -199,10 +208,10 @@ public class assembler2{
 								}else if(!getOpcode(opTable,cut[1]).equals("not found")){
 									error++;
 									System.out.println("error:no operand at line "+lineN);
+									// wrong 
 								}else if(getOpcode(opTable,cut[0]).equals("not found") && notMne(notmne, cut[0]).equals("not found")){
 									error++;
 									System.out.println("error:mnemonic wrong at line "+lineN);
-
 
 								}else {
 									error++;
@@ -210,18 +219,42 @@ public class assembler2{
 								}
 							}else if(cut.length == 3){
 								if(cut[1].equals("RSUB")){
+									result.label = cut[0];
 									result.obc.opc = "4C";
 									result.obc.sbc = "0000";
-									if(cut[1].trim().length()>0){
+									if(!getOpcode(opTable,cut[0]).equals("not found") || !notMne(notmne, cut[0]).equals("not found")){
+										error++;
+										System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
+										continue;
+									}
+									
+									if(checkSymbol(symTable, cut[0]).label != null && checkSymbol(symTable,cut[0]).loc==null){
+										checkSymbol(symTable,cut[0]).loc = currentLoc;
+										for(int i=0;i<output.size();i++){
+											if(output.get(i).obc.sbc == null && output.get(i).operand.equals(cut[0])){
+												if(output.get(i).addressing == -1){
+													output.get(i).obc.sbc = locAdd(currentLoc, 32768);
+												}else{
+													output.get(i).obc.sbc = currentLoc;
+												}
+											}
+										}
+									}else{
+										error++;
+										System.out.println("error: cannot define symbol more than once at line "+lineN);
+									}
+									
+									if(cut[2].trim().length()>0){
 										error++;
 										System.out.println("error:RSUB can not have operand at line "+lineN);
-										break;
+										continue;
 									}
 								}
 								if(!getOpcode(opTable,cut[0]).equals("not found")){
 									result.mnemonic = cut[0];
 									result.obc.opc = getOpcode(opTable,cut[0]);
 									if(cut[1].contains(",")){
+										result.addressing = -1;
 										String[] cutIndex = cut[1].split("\\,");
 										cut[1] = cutIndex[0];
 										if(!cut[2].equals("X")){
@@ -233,8 +266,6 @@ public class assembler2{
 											symBol sb = new symBol();
 											sb.label = cut[1];
 											symTable.add(sb);
-										}else if(checkSymbol(symTable, cut[0]).label != null && checkSymbol(symTable,cut[0]).loc==null){
-											
 										}else{
 											result.obc.sbc = locAdd(checkSymbol(symTable, cut[1]).loc,32768);
 										}
@@ -246,16 +277,14 @@ public class assembler2{
 										System.out.println("error:format wrong at line "+lineN);
 									}
 								}else if(!getOpcode(opTable,cut[1]).equals("not found")){
-									if(!getOpcode(opTable,cut[0]).equals("not found") || !getOpcode(opTable,cut[2]).equals("not found")){
+									if(!getOpcode(opTable,cut[0]).equals("not found") || !notMne(notmne, cut[0]).equals("not found")){
 										error++;
 										System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
-									}else if(cut[0].equals(cut[2])){
-										error++;
-										System.out.println("error:operand cannot same with label at line "+lineN);
 									}else{
 										result.mnemonic = cut[1];
 										result.obc.opc = getOpcode(opTable,cut[1]);
 										result.label = cut[0];
+
 										if(checkSymbol(symTable, cut[0]).label == null && checkSymbol(symTable,cut[0]).loc==null){
 											symBol sb = new symBol();
 											sb.label = cut[0];
@@ -265,19 +294,26 @@ public class assembler2{
 											checkSymbol(symTable,cut[0]).loc = currentLoc;
 											for(int i=0;i<output.size();i++){
 												if(output.get(i).obc.sbc == null && output.get(i).operand.equals(cut[0])){
-													output.get(i).obc.sbc = currentLoc;
+													if(output.get(i).addressing == -1){
+														output.get(i).obc.sbc = locAdd(currentLoc, 32768);
+													}else{
+														output.get(i).obc.sbc = currentLoc;
+													}
 												}
 											}
 										}else{
 											error++;
 											System.out.println("error: cannot define symbol more than once at line "+lineN);
 										}
+										if(cut[2].contains(",")){
+											String[] cutIndex = cut[2].split("\\,");
+											cut[2] = cutIndex[0];
+											result.addressing = -1;
+										}
 										if(checkSymbol(symTable, cut[2]).label == null && checkSymbol(symTable,cut[2]).loc==null){
 											symBol sb = new symBol();
 											sb.label = cut[2];
 											symTable.add(sb);
-										}else if(checkSymbol(symTable, cut[2]).label != null && checkSymbol(symTable,cut[2]).loc==null){
-											
 										}else{
 											result.obc.sbc = checkSymbol(symTable, cut[2]).loc;
 										}
@@ -286,12 +322,9 @@ public class assembler2{
 										currentLoc = locAdd(currentLoc, 3);
 									}
 								}else if(!notMne(notmne, cut[1]).equals("not found")){
-									if(!getOpcode(opTable,cut[0]).equals("not found") || !getOpcode(opTable,cut[2]).equals("not found")){
+									if(!getOpcode(opTable,cut[0]).equals("not found") || !notMne(notmne, cut[0]).equals("not found")){
 										error++;
 										System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
-									}else if(cut[0].equals(cut[2])){
-										error++;
-										System.out.println("error:operand cannot same with label at line "+lineN);
 									}else{
 										result.label = cut[0];
 										result.mnemonic = cut[1];
@@ -305,7 +338,11 @@ public class assembler2{
 											checkSymbol(symTable,cut[0]).loc = currentLoc;
 											for(int i=0;i<output.size();i++){
 												if(output.get(i).obc.sbc == null && output.get(i).operand.equals(cut[0])){
-													output.get(i).obc.sbc = currentLoc;
+													if(output.get(i).addressing == -1){
+														output.get(i).obc.sbc = locAdd(currentLoc, 32768);
+													}else{
+														output.get(i).obc.sbc = currentLoc;
+													}
 												}
 											}
 										}else{
@@ -351,17 +388,27 @@ public class assembler2{
 										}else if(notMne(notmne,cut[1]).equals("RESB")){
 											result.obc.opc = "";
 											result.obc.sbc = "";
+											if(!getOpcode(opTable,cut[0]).equals("not found") || !notMne(notmne, cut[0]).equals("not found")){
+												error++;
+												System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
+												continue;
+											}
 											if(!cut[2].matches("[0-9]+")){
 												error++;
-												System.out.println("error:only allow decimal at line "+lineN);
+												System.out.println("error:RESB value only allow decimal at line "+lineN);
 											}else{
 												int loc10 = Integer.parseInt(cut[2]);
 												currentLoc = locAdd(currentLoc, loc10);
 											}
 										}else if(notMne(notmne,cut[1]).equals("WORD")){
+											if(!getOpcode(opTable,cut[0]).equals("not found") || !notMne(notmne, cut[0]).equals("not found")){
+												error++;
+												System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
+												continue;
+											}
 											if(!cut[2].matches("[0-9]+")){
 												error++;
-												System.out.println("error:only allow decimal at line "+lineN);
+												System.out.println("error:WORD value only allow decimal at line "+lineN);
 											}else{
 												result.obc.opc = "00";
 												int loc10 = Integer.valueOf(cut[2],10);
@@ -371,9 +418,14 @@ public class assembler2{
 											}
 
 										}else if(notMne(notmne,cut[1]).equals("RESW")){
+											if(!getOpcode(opTable,cut[0]).equals("not found") || !notMne(notmne, cut[0]).equals("not found")){
+												error++;
+												System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
+												continue;
+											}
 											if(!cut[2].matches("[0-9]+")){
 												error++;
-												System.out.println("error:only allow decimal at line "+lineN);
+												System.out.println("error:RESW value only allow decimal at line "+lineN);
 											}else{
 												result.obc.opc = "";
 												result.obc.sbc = "";
@@ -384,21 +436,55 @@ public class assembler2{
 
 										output.add(result);
 									}
-								}else if(getOpcode(opTable,cut[1]).equals("not found") && notMne(notmne, cut[1]).equals("not found")){
+								}else if(getOpcode(opTable,cut[1]).equals("not found") && notMne(notmne, cut[1]).equals("not found") && !cut[1].equals("END")){
 									error++;
 									System.out.println("error:mnemonic wrong at line "+lineN);
 
+								}else if(cut[1].equals("END")){
+									if(!getOpcode(opTable,cut[0]).equals("not found") || !notMne(notmne, cut[0]).equals("not found")){
+										error++;
+										System.out.println("error:symbol cannot same with mnemonic at line "+lineN);
+										exit=1;
+									}else{
+										result.label = cut[0];
+										result.mnemonic=cut[1];
+										result.operand=cut[2];
+										result.obc.opc="";
+										result.obc.sbc="";
+										endLoc = currentLoc;
+										exit = 1;
+										if(checkSymbol(symTable, cut[0]).label == null && checkSymbol(symTable,cut[0]).loc==null){
+											symBol sb = new symBol();
+											sb.label = cut[0];
+											sb.loc = currentLoc;
+											symTable.add(sb);
+										}else if(checkSymbol(symTable, cut[0]).label != null && checkSymbol(symTable,cut[0]).loc==null){
+											checkSymbol(symTable,cut[0]).loc = currentLoc;
+											for(int i=0;i<output.size();i++){
+												if(output.get(i).obc.sbc == null && output.get(i).operand.equals(cut[0])){
+													if(output.get(i).addressing == -1){
+														output.get(i).obc.sbc = locAdd(currentLoc, 32768);
+													}else{
+														output.get(i).obc.sbc = currentLoc;
+													}
+												}
+											}
+										}else{
+											error++;
+											System.out.println("error: cannot define symbol more than once at line "+lineN);
+										
+										}
+										output.add(result);
+										exit = 1;
+									}
 								}else {
 									error++;
 									System.out.println("error:format wrong at line "+lineN);
 								}
 							}
 							
-						}else{
-							error++;
-							System.out.println("error:more than one START at line"+lineN);
 						}
-					}else {//more than 3
+					}else {//token more than 3
 						error++;
 						System.out.println("error:token more than 3 at line "+lineN);
 					}
@@ -407,19 +493,22 @@ public class assembler2{
 			}
 
 		}
-		if(error==0){
-			for(int i=0;i<symTable.size();i++){
-				if(symTable.get(i).loc == null){
-					for(int j=0;j<output.size();j++){
-						if(symTable.get(i).label.equals(output.get(j).operand)){
-							error++;
-							System.out.println("error:undefined symbol '"+output.get(j).operand+"' at line"+output.get(j).lineN);
-						}
+	
+		for(int i=0;i<symTable.size();i++){
+			if(symTable.get(i).loc == null){
+				for(int j=0;j<output.size();j++){
+					if(symTable.get(i).label.equals(output.get(j).operand)){
+						error++;
+						System.out.println("error:undefined symbol '"+output.get(j).operand+"' at line"+output.get(j).lineN);
 					}
 				}
 			}
 		}
-		if(error == 0){
+	
+		if(exit == 0){
+			System.out.println("error:no END in prog");
+		}
+		if(error == 0 && exit == 1){
 			
 			//print ouput
 			int end10 = Integer.valueOf(endLoc, 16);
@@ -439,6 +528,8 @@ public class assembler2{
 					System.out.print("	");
 				else
 					System.out.print(output.get(i).operand+"	");
+				System.out.print(output.get(i).addressing+"	");
+
 				if(output.get(i).obc.opc.trim().length()>0 && output.get(i).obc.sbc.trim().length()>0){
 					System.out.print(output.get(i).obc.opc);
 					System.out.print(output.get(i).obc.sbc+"		");
@@ -460,6 +551,7 @@ public class assembler2{
 
 			//print object code
 			System.out.println("H^"+progname+"	^"+("000000"+startLoc).substring(startLoc.length())+"^"+("000000"+progLength).substring(progLength.length()));
+			writer.println("H^"+progname+"	^"+("000000"+startLoc).substring(startLoc.length())+"^"+("000000"+progLength).substring(progLength.length()));
 			int count=0, loccount=0;
 			for(int i=1;i<output.size()-1;i++){
 				if(i ==output.size()-2){
@@ -471,12 +563,16 @@ public class assembler2{
 						if(output.get(i+1).obc.sbc.trim().length()==0){
 							
 							System.out.print("T^00"+output.get(i-count+1).loc);
+							writer.print("T^00"+output.get(i-count+1).loc);
 							String loccount16 = Integer.toHexString(loccount).toUpperCase();
 							System.out.print("^"+(("00"+loccount16).substring(loccount16.length())));
+							writer.print("^"+(("00"+loccount16).substring(loccount16.length())));
 							for(int j=i-count+1;j<i+1;j++){
 								System.out.print("^"+output.get(j).obc.opc+output.get(j).obc.sbc);
+								writer.print("^"+output.get(j).obc.opc+output.get(j).obc.sbc);
 							}
 							System.out.println();
+							writer.println();
 							loccount = 0;
 							count = 0;
 						}
@@ -491,12 +587,16 @@ public class assembler2{
 						if(loccount+nextlength>30 || (output.get(i+1).obc.sbc.trim().length()==0)){
 							
 							System.out.print("T^00"+output.get(i-count+1).loc);
+							writer.print("T^00"+output.get(i-count+1).loc);
 							String loccount16 = Integer.toHexString(loccount).toUpperCase();
 							System.out.print("^"+(("00"+loccount16).substring(loccount16.length())));
+							writer.print("^"+(("00"+loccount16).substring(loccount16.length())));
 							for(int j=i-count+1;j<i+1;j++){
 								System.out.print("^"+output.get(j).obc.opc+output.get(j).obc.sbc);
+								writer.print("^"+output.get(j).obc.opc+output.get(j).obc.sbc);
 							}
 							System.out.println();
+							writer.println();
 							loccount = 0;
 							count = 0;
 						}
@@ -506,11 +606,13 @@ public class assembler2{
 			if(checkSymbol(symTable, output.get(output.size()-1).operand).label != null &&
 			 checkSymbol(symTable, output.get(output.size()-1).operand).loc != null){
 				System.out.println("E^00"+checkSymbol(symTable, output.get(output.size()-1).operand).loc);
+				writer.println("E^00"+checkSymbol(symTable, output.get(output.size()-1).operand).loc);
 
 			}
 			//System.out.println("E^00"+output.get(0).loc);
 			
 		}
+		writer.close();
 		
 		//System.out.println("size: -------"+token.size());
 		
@@ -522,6 +624,7 @@ public class assembler2{
 		String mnemonic;
 		String operand;
 		int lineN;
+		int addressing;
 		obCode obc = new obCode();
 		public outPut(){
 			loc=null;
@@ -529,6 +632,7 @@ public class assembler2{
 			mnemonic=null;
 			operand=null;
 			lineN=0;
+			addressing=0;
 		}
 	}
 	public static class obCode{
