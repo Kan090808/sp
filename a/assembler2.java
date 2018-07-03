@@ -3,7 +3,7 @@ import java.util.*;
 
 public class assembler2{
 	public static void main(String[] args) throws Exception{
-
+		double starttime = System.currentTimeMillis();
 		//read and create opcode table
 		BufferedReader br = new BufferedReader(new FileReader("opCode.txt"));//read file
 		String line;//for readline
@@ -67,7 +67,6 @@ public class assembler2{
 									}else{
 										error++;
 										System.out.println("error:only allow 16 digits behind START at line "+lineN);
-										exit = 1;
 										break;
 									}
 								}
@@ -315,7 +314,11 @@ public class assembler2{
 											sb.label = cut[2];
 											symTable.add(sb);
 										}else{
-											result.obc.sbc = checkSymbol(symTable, cut[2]).loc;
+											if(result.addressing == -1){
+												result.obc.sbc = locAdd(checkSymbol(symTable,cut[2]).loc, 32768);
+											}else{
+												result.obc.sbc = checkSymbol(symTable,cut[2]).loc;
+											}
 										}
 										result.operand = cut[2];
 										output.add(result);
@@ -613,7 +616,8 @@ public class assembler2{
 			
 		}
 		writer.close();
-		
+		double endtime = System.currentTimeMillis();
+		System.out.println(endtime - starttime);
 		//System.out.println("size: -------"+token.size());
 		
 	}
