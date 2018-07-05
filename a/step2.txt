@@ -94,7 +94,7 @@ while(prog not end){
 							record "0000" as this line symbol code;
 							add this line into ouput table;
 							current address+3;
-						}else if(first token is mnemonic or notmne){//notmne = {"BYTE", "RESB", "WORD", "RESW"};
+						}else if(first token is mnemonic or assembler directives){
 							error number added;
 							show error:no operand;
 						}else if(first token is "END"){
@@ -143,36 +143,60 @@ while(prog not end){
 								}else {
 									record symbol code from symbol table as this line symbol code;
 								}
-								add this line into output list;
+								add this line into output table;
 								current address added by 3);
-							}//--------------------------- check until here ----------------------------------
+							}
 						}else if(second token is "RSUB"){
+							record first token as line label;
+							record second token as line mnemonic;
+							record "4C" as line opcode;
+							record "0000" as line symbolcode;
+							if(first token is mnemonic or is assembler directives){
+								error number added;
+								show error:symbol cannot same with mnemonic
+							}
 							if(first token not found in symbol table){
-								add new symbol and define address by current address;
-							}else if(first token found in symbol table without address){
-								define symbol address by current address;
-								//fill up
+								record first token as symbol label;
+								record current address as symbol address;
+								add symbol into symbol table;
+							}else if(first token found in symbol table but without address){
+								record current address as symbol address;
+								for(output table){
+									if(first token same with ouput operand and output symbol code is null){
+										if(output using index addressing)
+											record current address + 8000 as output symbol code;
+										else
+											record current address as output symbol code;
+									}
+								}
 							}else{
 								error number added;
 								show error:cannot define symbol more than once;
 							}
-							add output;
-							current address + 3;
+							add this line into output table;
+							current address added by 3;
 
-						}else if(first token is notmne){
+						}else if(first token is assembler directives){
 							error number added;
-							show error:notmne cannot without label;
+							show error:assembler directives cannot without label;
 						}else if(first token is "END"){
 							if(second token not found in symbol table){
 								error number added;
 								show error:undefined symbol behind END;
 								record program ended;
 							}else{
-								add this line into ouput table;
+								record first token as line mnemonic;
+								record second token as line operand;
+								record empty as line opcode;
+								record empty as line symbol code;
+								add this line into output table;
 								record current address as ending address;
 								record program ended;
 							}
-						}else if(first token is mnemonic and is notmne){
+						}else if(second token is mnemonic){
+							error number added;
+							show error:no operand;
+						}else if(first token is mnemonic and is assembler directives){
 							error number added;
 							show error:mnemonic wrong;
 
@@ -182,69 +206,120 @@ while(prog not end){
 						}
 					}else if(has 3 token){
 						if(second token is "RSUB"){
+							record first token as line label;
+							record "4C" as line opcode;
+							record "0000" as line symbol code;
 							if(third token not space and tab){
 								error number added;
 								show error:RSUB can not have operand);
-								break;//continue
+								continue;
 							}
+							if(first token not found in symbol table{
+								for(output table){
+									if(output using index addressing){
+										record current address + 8000 as output symbol code;
+									else
+										record current address as output symbol code; 
+									}
+								}
+							}
+						}else{
+							error number added;
+							show error:cannot define symbol more than once;
 						}
-						if(first token is mnemonic){
-							if(second token contains ","){
-								second token cut by ",";
-								if(third token not "X"){
-									error number added;
-									show error:index wrong;
-								}
-								if(second token not found in symbol table){
-									add new symbol without address;
-								}else{
-									symbol code + 8000;
-								}
-								add output;
-								current address + 3;
-							}else{//prevent unknown error;
+
+						if(third token not emoty){
+							error number added;
+							show error:RSUB cannot have operand;
+							continue;
+						}
+					}
+					if(first token is mnemonic){
+						record first token as line mnemonic;
+						record opcode from optable;
+						if(second token contains ","){
+							record line using index adressing;
+							second token cut by ",";
+							if(third token not "X"){
 								error number added;
-								show error:format wrong;
+								show error:index wrong;
 							}
-						}else if(second token is mnemonic){
-							if(first token is mnemonic or notmne){
+							record second token as line operand;
+							if(second token not found in symbol table){
+								record second token as symbol label;
+								add new symbol into symbol table;
+							}else{
+								record current address + 8000 as line symbol code;;
+							}
+							add line into output table;
+							current address added by 3;
+						}else{//prevent unknown error;
+							error number added;
+							show error:format wrong;
+						}
+					}else if(second token is mnemonic){
+							if(first token is mnemonic or assembler directives){
 								error number added;
 								show error:symbol cannot same with mnemonic;
 							}else{
+								record second token as line mnemonic;
+								record opcode from optable;
+								record current address as line label;
 								if(first token not found in symbol table){
-									add new symbol with address;
-								}else if(first token found in symbol table without address){
-									add current address as symbol address;
-									//fill up symbol code 
-									for(check output list){
-										if(output symbol code is null && output operand same with first token){
-											add symbol address as output symbol code; 
+									record first token as symbol label;
+									record current address as symbol address;
+									add new symbol into symbol table;
+								}else if(first token found in symbol table but without address){
+									record current address as symbol address;
+									for(output table){
+										if(first token same with ouput operand and output symbol code is null){
+											if(output using index addressing)
+												record current address + 8000 as output symbol code;
+											else
+												record current address as output symbol code; 
 										}
 									}
 								}else{
 									error number added;
 									show error: cannot define symbol more than once;
 								}
-								if(third token not found in symbol table){
-									add new symbol without address;
-								}else{
-									get symbol code from symbol table;
+								if(third token contains","") {
+									third token cut by ",";
+									replace third token by word before ",";
+									record line using index addressing;
 								}
-								add output;
-								current address + 3;
+								if(third token not found in symbol table){
+									record third token as symbol label;
+									add new symbol into symbol table;
+								}else{
+									if(line using index addressing)
+										record current address + 8000 as output symbol code;
+									else
+										record currenst address as output symbol code;
+								}
+								record third token as line operand;
+								add line into output table;
+								current address added by 3;
 							}
-						}else if(second token is notmne){
-							if(first token is mnemonic or notmne){
+						}else if(second token is assembler directives){
+							if(first token is mnemonic or assembler directives){
 								error number added;
 								show error:symbol cannot same with mnemonic;
 							}else{
+								record first token as line label;
+								record second token as line mnemonic;
+								record third token as line operand;
 								if(first token not found in symbol table){
-									add new symbol with address;
-								}else if(first token found in symbol table without address){
-									add current address as symbol address;
-									for(check output list){
-										if(output symbol code == null and output operand same with first token){
-											add symbol address as output symbol code; 
+									record first token as symbol label;
+									record current address as symbol address;
+									add new symbol into symbol table;
+								}else if(first token found in symbol table but without address){
+									record current address as symbol address;
+									for(output list){
+										if(first token same with ouput operand and output symbol code is null){
+											record current address + 8000 as output symbol code; 
+										else 
+											record current addres as output symbol code;
 										}
 									}
 								}else{
@@ -253,16 +328,18 @@ while(prog not end){
 								
 								}
 								if(second token is "BYTE"){
-									third token cut by ("'");
-									if(no words behind "'"){
+									third token cut by "'";
+									if(no words between "'"){
 										error number added;
 										show error:byte value cannot be empty;
 									}else{
 										if("C" before "'"){
+											record empty as line opcode; 
+											record empty as line symbol code; 
 											for(words in "'"){
-												translate to 16 digits and save as symbol code;
+												translate words to 16 digits and record as symbol code;
 											}
-											current address + length of 16 digits;
+											current address added by length of words;
 											
 										}else if("X" before "'"){
 											if(length of word in "'" cannot be mod 2){
@@ -285,37 +362,92 @@ while(prog not end){
 									}
 
 								}else if(second token is "RESB"){
+									record empty as line opcode;
+									record empty as line symbol code;
 									if(third token not number){
 										error number added;
 										show error:RESB value only allow decimal;
+										continue;
+									}
+									if(third token not decimal){
+										error number added;
+										show error:RESB value only allow decimal;
 									}else{
-										current address + RESB value;
+										current address added by  RESB value;
 									}
 								}else if(second token is "WORD"){
 									if(third token not number){
 										error number added;
 										show error:only allow decimal;
+									}
+									if(third token not decimal){
+										error number added;
+										show error:WORD value only allow decimal;
 									}else{
+										record "00" as line opcode;
 										translate value of WORD to 16 digits;
-										add 16 digits as symbol code;
-										current address + 3;
+										record 16 digits as line symbol code;
+										current address added by 3;
 									}
 
 								}else if(second token is "RESW"){
 									if(third token not number){
 										error number added;
 										show error:only allow decimal;
+										continue;
+									}
+									if(third token not decimal){
+										error number added;
+										show error:RESW value only allow decimal;
 									}else{
-										current address + value of RESW * 3;
+										record empty as line opcode;
+										record empty as line symbol code;
+										current address added by value of RESW * 3;
 									}
 								}
 								
-								add output;
+								add line into output table;
 							}
-						}else if(second token not mnemonic and notmne){
+						}else if(second token not mnemonic and assembler directives){
 							error number added;
 							show error:mnemonic wrong;
 
+						}else if(second token is "END")){
+									if(first token is mnemonic or assembler directives){
+										error number added;
+										show error:symbol cannot same with mnemonic;
+										record program ended;
+									}else{
+										record first token as line label;
+										record second token as line mnemonic;
+										record third token as line operand;
+										record empty as line opcode;
+										record empty as symbol code;
+										record current addess as ending address;
+										record program ended;
+										if(first token not found in symbol table){
+											record first token as symbol label;
+											record current address as symbol address;
+											add symbol into symbol table;
+										}else if(first token found in symbol table but without address){
+											record current address as symbol address;
+											for(output table){
+												if(first token same with ouput operand and output symbol code is null){
+													if(output using index addressing){
+														record current address + 8000 as output symbol code;
+													}else{
+														record current address as output symbol code;
+													}
+												}
+											}
+										}else{
+											error number added;
+											show error:cannot define symbol more than once;
+										
+										}
+										add line into output table;
+										record program ended;
+									}
 						}else {
 							error number added;
 							show error:format wrong;
@@ -331,4 +463,6 @@ while(prog not end){
 		
 	}
 	//output
+	
+
 }
